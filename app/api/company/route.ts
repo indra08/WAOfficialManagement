@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { useDb } from "@/lib/db";
 import { companies } from "@/db/schema";
 import { verifySessionToken } from "@/lib/auth";
 import { companyCreateSchema } from "@/lib/validation";
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const result = await db!
+    const result = await useDb()
       .select({
         id: companies.id,
         name: companies.name,
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = companyCreateSchema.parse(body);
 
-    const existing = await db!
+    const existing = await useDb()
       .select()
       .from(companies)
       .where(eq(companies.subdomain, validated.subdomain))
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [company] = await db!
+    const [company] = await useDb()
       .insert(companies)
       .values({
         name: validated.name,
@@ -99,3 +99,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+export const runtime = 'edge';

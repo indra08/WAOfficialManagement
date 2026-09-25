@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
             <MessageCircle className="h-5 w-5 text-white" />
           </div>
-          <span className="text-lg font-bold text-heading">WaOfficial</span>
+          <span className="text-lg font-bold text-heading">Whatsapp Official Management</span>
         </Link>
 
         <Card>

@@ -1,0 +1,18 @@
+{
+  "runtime": "edge",
+  "name": "api/whatsapp/embedded",
+  "deploymentTarget": "v8-worker",
+  "entrypoint": "index.js",
+  "assets": [],
+  "framework": {
+    "slug": "nextjs",
+    "version": "15.4.11"
+  },
+  "environment": {
+    "__NEXT_BUILD_ID": "ijmlFrbNjLruubQ4Eaweq",
+    "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "MVX1T1YC9sQhkoTxZQgemyH7wiZFyvyCxtl5cY4KGOU=",
+    "__NEXT_PREVIEW_MODE_ID": "3f0b56a2986c9f9b096845649320f77c",
+    "__NEXT_PREVIEW_MODE_SIGNING_KEY": "3ca1b63ab435a4773e0ecfc4056acee8092a94e1ccab30461587d41f555fd1da",
+    "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "4fbdfba5bc7786e638531c4b34a72ac561f6aaf0390198d90fd435cd0260d3e9"
+  }
+}

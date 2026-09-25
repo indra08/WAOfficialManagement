@@ -6,3 +6,4 @@ export async function POST() {
   response.headers.set("Set-Cookie", clearSessionCookie());
   return response;
 }
+export const runtime = 'edge';

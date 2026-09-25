@@ -263,3 +263,66 @@ export const auditLogs = sqliteTable("audit_logs", {
   userAgent: text("user_agent"),
   createdAt: createdAt(),
 });
+
+// ── WhatsApp Embedded Signup ───────────────────────────────────────────────────
+export const whatsappEmbeddedSignups = sqliteTable("whatsapp_embedded_signups", {
+  id: id(),
+  companyId: text("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  /** Random string used as PKCE state */
+  state: text("state").notNull().unique(),
+  /** code_verifier for PKCE – hashed when sent as code_challenge */
+  codeVerifier: text("code_verifier").notNull().unique(),
+  /** Meta App ID yang diinput user untuk OAuth flow ini */
+  metaAppId: text("meta_app_id").notNull(),
+  /** Meta App Secret yang diinput user untuk OAuth flow ini */
+  metaAppSecret: text("meta_app_secret").notNull(),
+  /** Authorization code received from Meta after signup */
+  authorizationCode: text("authorization_code"),
+  status: text("status")
+    .notNull()
+    .default("pending")
+    .$type<"pending" | "completed" | "expired">(),
+  /** Full raw response body from Meta OAuth/token endpoint */
+  metaResponse: text("meta_response", { mode: "json" }).$type<Record<string, unknown>>(),
+  errorMessage: text("error_message"),
+  createdAt: createdAt(),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
+});
+
+/** Stores the permanent token set after a successful Meta Embedded Signup.
+ *  One row per company; updated on each reconnect. */
+export const whatsappAppConnections = sqliteTable("whatsapp_app_connections", {
+  id: id(),
+  companyId: text("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" })
+    .unique(),
+  /** App ID yang diinput user saat Connect (per-akun) */
+  metaAppId: text("meta_app_id").notNull(),
+  /** App Secret yang diinput user saat Connect (per-akun) */
+  metaAppSecret: text("meta_app_secret").notNull(),
+  /** Webhook verify token — auto-generated saat connect */
+  webhookVerifyToken: text("webhook_verify_token").$defaultFn(() =>
+    crypto.randomUUID()
+  ),
+  accessToken: text("access_token").notNull(),
+  appAccessToken: text("app_access_token"),
+  businessAccountId: text("business_account_id"),
+  phoneNumberId: text("phone_number_id"),
+  phoneNr: text("phone_number"),
+  accountStatus: text("account_status")
+    .notNull()
+    .default("inactive")
+    .$type<"inactive" | "active" | "pending_review" | "disabled">(),
+  qualityRating: text("quality_rating"),
+  tier: text("tier"), // e.g. "TIER_500", "TIER_1K", ...
+  webhookVerifiedAt: integer("webhook_verified_at", { mode: "timestamp" }),
+  lastSyncedAt: integer("last_synced_at", { mode: "timestamp" }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});

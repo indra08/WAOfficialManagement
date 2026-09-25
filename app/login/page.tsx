@@ -113,7 +113,7 @@ export default function LoginPage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
             <MessageCircle className="h-5 w-5 text-white" />
           </div>
-          <span className="text-lg font-bold text-heading">WaOfficial</span>
+          <span className="text-lg font-bold text-heading">Whatsapp Official Management</span>
         </Link>
         <Suspense fallback={<div className="animate-pulse space-y-4"><div className="h-48 rounded-lg bg-base" /></div>}>
           <LoginForm />

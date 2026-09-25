@@ -44,7 +44,7 @@ export function Navbar() {
               <span className="text-xs font-extrabold text-white">W</span>
             </div>
             <span className="hidden text-sm font-bold text-heading sm:inline">
-              WaOfficial
+              Whatsapp Official Management
             </span>
           </Link>
           {pathname.startsWith("/dashboard") && (

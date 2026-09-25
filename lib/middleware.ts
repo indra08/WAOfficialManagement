@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifySessionToken } from "./auth";
 
 const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password"];
-const API_PUBLIC_PREFIXES = ["/api/auth", "/api/webhooks"];
+const API_PUBLIC_PREFIXES = ["/api/auth", "/api/webhooks", "/api/whatsapp"];
 
 function parseCookies(cookieHeader: string): Record<string, string> {
   return cookieHeader.split("; ").reduce<Record<string, string>>((acc, c) => {

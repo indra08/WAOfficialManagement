@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { useDb } from "@/lib/db";
 import { users, companies } from "@/db/schema";
 import { hashPassword, signSessionToken, createSessionCookie } from "@/lib/auth";
 import { registerSchema } from "@/lib/validation";
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = registerSchema.parse(body);
 
-    const existingUser = await db!
+    const existingUser = await useDb()
       .select()
       .from(users)
       .where(eq(users.email, validated.email))
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(validated.password);
     const role = "member";
 
-    const [newUser] = await db!
+    const [newUser] = await useDb()
       .insert(users)
       .values({
         email: validated.email,
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       })
       .returning({ id: users.id });
 
-    const [company] = await db!
+    const [company] = await useDb()
       .insert(companies)
       .values({
         name: validated.name + " Company",
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       })
       .returning({ id: companies.id });
 
-    await db!
+    await useDb()
       .update(users)
       .set({ companyId: company.id })
       .where(eq(users.id, newUser.id));
@@ -81,3 +81,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+export const runtime = 'edge';

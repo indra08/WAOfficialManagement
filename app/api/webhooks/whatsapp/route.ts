@@ -1,20 +1,23 @@
+/**
+ * POST /api/webhooks/whatsapp
+ *
+ * Menerima event dari Meta Cloud API (messaging events).
+ * Menyimpan payload ke webhook_events table untuk diproses lebih lanjut.
+ *
+ * GET handler: challenge verification dari Meta (wajib).
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { webhookEvents, whatsappBusinessAccounts } from "@/db/schema";
+import { useDb } from "@/lib/db";
+import { webhookEvents, whatsappAppConnections } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { assertDb } from "@/lib/db-guard";
 
 export async function POST(request: NextRequest) {
-  const dbErr = await assertDb();
-  if (dbErr) return dbErr;
   try {
     const body = await request.json();
 
     if (!body.object || body.object !== "whatsapp_business_account") {
-      return NextResponse.json(
-        { error: "Invalid webhook object" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Not a WhatsApp webhook" }, { status: 200 });
     }
 
     const entry = body.entry?.[0];
@@ -27,31 +30,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "No changes found" }, { status: 200 });
     }
 
+    // Extract phone_number_id from meta field
     const metaField = changes.meta;
-    if (!metaField) {
-      return NextResponse.json({ error: "Missing meta field" }, { status: 400 });
+    if (!metaField?.phone_number_id) {
+      return NextResponse.json({ error: "Missing phone_number_id in meta" }, { status: 400 });
     }
 
     const phoneNumberId = metaField.phone_number_id;
 
-    const account = await db!
-      .select({ id: whatsappBusinessAccounts.id, companyId: whatsappBusinessAccounts.companyId })
-      .from(whatsappBusinessAccounts)
-      .where(eq(whatsappBusinessAccounts.phoneNumberId, phoneNumberId))
+    // Find which company this phone number belongs to
+    const [conn] = await useDb()
+      .select({ companyId: whatsappAppConnections.companyId })
+      .from(whatsappAppConnections)
+      .where(eq(whatsappAppConnections.phoneNumberId, phoneNumberId))
       .limit(1);
 
-    if (account.length === 0) {
-      return NextResponse.json(
-        { error: "Account not found for phone number" },
-        { status: 404 }
-      );
+    if (!conn) {
+      console.warn(`[Webhook] Unknown phone_number_id: ${phoneNumberId}`);
+      return NextResponse.json({ message: "Account not found" }, { status: 200 });
     }
 
-    const eventType = changes.field;
-    const timestamp = Math.floor(Date.now() / 1000);
-
-    await db!.insert(webhookEvents).values({
-      companyId: account[0].companyId,
+    const eventType = changes.field || "unknown";
+    await useDb().insert(webhookEvents).values({
+      companyId: conn.companyId,
       eventType,
       payload: body as Record<string, unknown>,
       processed: false,
@@ -59,11 +60,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ message: "Webhook received" }, { status: 200 });
   } catch (error) {
-    console.error("Webhook error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("[Webhook] POST error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -73,9 +71,26 @@ export async function GET(request: NextRequest) {
   const token = url.searchParams.get("hub.verify_token");
   const challenge = url.searchParams.get("hub.challenge");
 
-  if (mode === "subscribe" && token === process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
-    return NextResponse.json({ challenge });
+  // Look up stored webhook token from any active connection (fallback to env)
+  let expectedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+  if (!expectedToken) {
+    const [conn] = await useDb()
+      .select({ token: whatsappAppConnections.webhookVerifyToken })
+      .from(whatsappAppConnections)
+      .limit(1);
+    expectedToken = conn?.token ?? undefined;
+  }
+
+  if (!expectedToken) {
+    return NextResponse.json({ error: "Webhook verify token not configured" }, { status: 500 });
+  }
+
+  if (mode === "subscribe" && token === expectedToken) {
+    return new NextResponse(challenge, {
+      headers: { "Content-Type": "text/plain" },
+    });
   }
 
   return NextResponse.json({ error: "Invalid verification token" }, { status: 403 });
 }
+export const runtime = 'edge';

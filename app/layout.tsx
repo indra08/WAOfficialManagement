@@ -17,7 +17,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WaOfficialManagement",
+  title: "Whatsapp Official Management",
   description:
     "WhatsApp Business Management Platform — kelola akun WhatsApp Business, conversation, contacts, dan message templates dalam satu dashboard.",
 };
@@ -29,8 +29,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={plusJakarta.variable + " " + jetbrains.variable}>
-      <body className={`${plusJakarta.variable} ${jetbrains.variable} antialiased bg-void text-body`}>
+      <body className={`${plusJakarta.variable} ${jetbrains.variable} antialiased bg-void text-body flex flex-col min-h-screen`}>
         {children}
+        <footer className="border-t border-neutral-800 bg-neutral-900 py-3 mt-auto">
+          <div className="mx-auto max-w-7xl px-4 text-center text-xs text-neutral-400">
+            Create by{" "}
+            <a
+              href="https://indramaulana.web.id"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Indra Maulana
+            </a>
+            {" · "}
+            Supported by{" "}
+            <a
+              href="https://insantech-id.web.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              InsanTech
+            </a>
+          </div>
+        </footer>
       </body>
     </html>
   );

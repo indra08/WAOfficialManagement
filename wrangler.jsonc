@@ -1,0 +1,20 @@
+{
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "name": "wanago",
+  "pages": {
+    "build_command": "npm run pages:build",
+    "directory": ".vercel/output/static",
+    "placement": { "mode": "smart" }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "whatsappofficial",
+      "database_id": "c5882f6d-824c-4084-8710-81d2a302b476"
+    }
+  ],
+  "vars": {
+    "D1_DATABASE_PATH": "DB"
+  }
+}

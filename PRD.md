@@ -635,6 +635,49 @@ created_at INTEGER NOT NULL
 
 ---
 
+## whatsapp_embedded_signups
+
+Simpan state PKCE dan authorization code saat user mengerjakan Embedded Signup flow Meta.
+
+```sql
+id TEXT PRIMARY KEY
+company_id TEXT NOT NULL
+user_id TEXT NOT NULL
+state TEXT NOT NULL UNIQUE           -- CSRF token
+code_verifier TEXT NOT NULL UNIQUE   -- PKCE verifier
+authorization_code TEXT              -- code dari Meta setelah signup selesai
+status TEXT NOT NULL DEFAULT 'pending' -- pending | completed | expired
+meta_response TEXT                   -- JSON response dari Meta OAuth/token endpoint
+error_message TEXT
+created_at INTEGER NOT NULL
+completed_at INTEGER
+```
+
+---
+
+## whatsapp_app_connections
+
+Token permanen setelah Embedded Signup selesai. Satu baris per perusahaan.
+
+```sql
+id TEXT PRIMARY KEY
+company_id TEXT NOT NULL UNIQUE
+access_token TEXT NOT NULL                   -- user access token untuk Cloud API
+app_access_token TEXT NOT NULL               -- app-level token
+business_account_id TEXT                     -- WABA ID
+phone_number_id TEXT                         -- nomor WA ID
+phone_nr TEXT                                -- tampilan nomor (+62...)
+account_status TEXT NOT NULL DEFAULT 'inactive' -- inactive | active | pending_review | disabled
+quality_rating TEXT                          -- GREEN | YELLOW | RED
+tier TEXT                                    -- TIER_500, TIER_1K, dst.
+webhook_verified_at INTEGER
+last_synced_at INTEGER
+created_at INTEGER NOT NULL
+updated_at INTEGER NOT NULL
+```
+
+---
+
 # 9. JSON Storage
 
 D1 tidak memiliki PostgreSQL-style JSONB.
@@ -1305,13 +1348,23 @@ PATCH /api/company
 
 ## WhatsApp
 
+### Embedded Signup Flow
+
+User klik "Connect Account" → backend generate Meta signup URL dengan PKCE → user redirected ke Meta → Meta callback ke backend → backend tukar code → simpan tokens.
+
 ```text
-GET /api/whatsapp/status
-POST /api/whatsapp/connect
-POST /api/whatsapp/disconnect
-GET /api/whatsapp/accounts
-GET /api/whatsapp/phone-numbers
-POST /api/whatsapp/sync
+POST   /api/whatsapp/embedded         Generate Meta signup URL (PKCE)
+GET    /api/whatsapp/embedded/callback  Meta OAuth callback — save tokens
+GET    /api/whatsapp/app              Fetch WABA details from Meta API
+GET    /api/whatsapp/status           Current connection state (DB only)
+DELETE /api/whatsapp/connect          Disconnect and revoke token
+```
+
+### Webhooks
+
+```text
+GET    /api/webhooks/whatsapp         Challenge verification (Meta requires GET with hub.challenge)
+POST   /api/webhooks/whatsapp         Receive messaging events from Meta
 ```
 
 ---
@@ -1743,7 +1796,17 @@ Advanced Access where required
 Production configuration
 ```
 
-Requirement Meta harus diverifikasi kembali sebelum production karena dapat berubah.
+### Step-by-step setup Meta App
+
+1. **Create App** — `developers.facebook.com` → My Apps → Create App → tipe **Business**
+2. **Tambah Product WhatsApp** — dashboard app → WhatsApp → Set Up
+3. **Isi Embedded Signup URLs** — WhatsApp → Configuration → tambah callback URL:
+   - Local: `http://localhost:3000/api/whatsapp/embedded/callback`
+   - Production: `https://your-domain.com/api/whatsapp/embedded/callback`
+4. **Salin kredensial** — Settings → Basic → App ID + App Secret
+5. **Isi .env.local** — ikuti panduan di section Environment Variables
+6. **Setup Webhook** — WhatsApp → Webhooks → subscribe field `messages`, masukkan `WEBHOOK_BASE_URL/api/webhooks/whatsapp`
+7. **Submit untuk review** — setelah semua konfigurasi siap, kirim app ke review Meta
 
 ---
 

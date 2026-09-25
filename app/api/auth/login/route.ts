@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { useDb } from "@/lib/db";
 import { users, companies } from "@/db/schema";
 import { comparePassword, signSessionToken, createSessionCookie } from "@/lib/auth";
 import { loginSchema } from "@/lib/validation";
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = loginSchema.parse(body);
 
-    const [user] = await db!
+    const [user] = await useDb()
       .select()
       .from(users)
       .where(eq(users.email, validated.email))
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [company] = await db!
+    const [company] = await useDb()
       .select()
       .from(companies)
       .where(eq(companies.id, user.companyId))
@@ -81,3 +81,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+export const runtime = 'edge';

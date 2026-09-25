@@ -8,13 +8,22 @@ import * as schema from "@/db/schema";
 // ── Dapatkan binding D1 dari request context ────────────────────────────────
 function getD1Binding(): D1Database | null {
   const ctx = getOptionalRequestContext();
-  if (!ctx) return null;
-  const env = ctx.env as { DB?: D1Database } | undefined;
-  const binding = env?.DB;
-  if (binding && typeof (binding as any).prepare === "function") {
-    return binding;
+  if (!ctx) {
+    console.error("[DB] getOptionalRequestContext() returned null");
+    return null;
   }
-  return null;
+  const rawEnv = ctx.env as Record<string, unknown>;
+  console.error("[DB] ctx.env keys:", Object.keys(rawEnv).join(", "));
+  const binding = rawEnv.DB;
+  if (!binding) {
+    console.error("[DB] env.DB is undefined. Full env:", JSON.stringify(rawEnv, null, 2));
+    return null;
+  }
+  if (typeof (binding as any).prepare !== "function") {
+    console.error("[DB] env.DB exists but has no prepare():", typeof binding, Object.keys(binding as object));
+    return null;
+  }
+  return binding as D1Database;
 }
 
 // ── Dapatkan instance Drizzle D1 untuk request saat ini ──────────────────────

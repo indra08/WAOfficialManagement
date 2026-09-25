@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "pages:build": "next build && npx @cloudflare/next-on-pages",
-    "pages:preview": "npx wrangler pages dev .vercel/output/static --node-compat"
+    "pages:preview": "npx wrangler pages dev .vercel/output/static --node-compat",
+    "db:create": "npx wrangler d1 create whatsappofficial",
+    "db:migrate": "npx drizzle-kit migrate",
+    "db:push": "npx drizzle-kit push"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.6",
@@ -42,6 +45,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "^15.0.0",
     "typescript": "^5",

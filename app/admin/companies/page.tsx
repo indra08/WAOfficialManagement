@@ -45,7 +45,7 @@ export default function CompaniesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, subdomain }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as Company;
       if (res.ok) {
         setCompanies((prev) => [...prev, { ...data, isActive: true, createdAt: new Date().toISOString() }]);
         form.reset();

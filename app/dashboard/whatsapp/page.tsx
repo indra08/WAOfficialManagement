@@ -118,7 +118,7 @@ export default function WhatsAppPage() {
     try {
       const res = await fetch("/api/whatsapp/status");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = (await res.json()) as WhatsAppStatus;
       setStatus(data);
       if (data.connected) fetchAppData();
     } catch {
@@ -154,15 +154,16 @@ export default function WhatsAppPage() {
         body: JSON.stringify({ metaAppId: metaAppId.trim(), metaAppSecret: metaAppSecret.trim() }),
       });
       if (!res.ok) {
-        const json = await res.json().catch(() => null);
+        const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
         if (res.status === 409) {
           setConnectError("WhatsApp sudah terhubung. Putuskan dulu sebelum menghubungkan yang baru.");
           return;
         }
-        setConnectError(json?.error ?? `HTTP ${res.status}`);
+        setConnectError((json?.error as string | undefined) ?? `HTTP ${res.status}`);
         return;
       }
-      const { url } = await res.json();
+      const data = (await res.json()) as { url: string };
+      const { url } = data;
       window.location.href = url;
     } catch {
       setConnectError("Terjadi kesalahan jaringan. Coba lagi.");
@@ -177,8 +178,8 @@ export default function WhatsAppPage() {
     try {
       const res = await fetch("/api/whatsapp/connect", { method: "DELETE" });
       if (!res.ok) {
-        const json = await res.json().catch(() => null);
-        setErrorMsg(json?.error ?? `HTTP ${res.status}`);
+        const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+        setErrorMsg((json?.error as string | undefined) ?? `HTTP ${res.status}`);
         return;
       }
       setStatus(null);
@@ -210,8 +211,8 @@ export default function WhatsAppPage() {
         }),
       });
       if (!res.ok) {
-        const json = await res.json().catch(() => null);
-        setConnectError(json?.error ?? `HTTP ${res.status}`);
+        const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+        setConnectError((json?.error as string | undefined) ?? `HTTP ${res.status}`);
         return;
       }
       await fetchStatus();
@@ -252,9 +253,9 @@ export default function WhatsAppPage() {
           messageType: trialType,
         }),
       });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        setSendResult({ ok: false, msg: json.error ?? `HTTP ${res.status}` });
+      const json = (await res.json()) as Record<string, unknown>;
+      if (!res.ok || !(json.success as boolean | undefined)) {
+        setSendResult({ ok: false, msg: (json.error as string | undefined) ?? `HTTP ${res.status}` });
       } else {
         setSendResult({ ok: true, msg: "Pesan berhasil dikirim! Periksa HP tujuan." });
       }

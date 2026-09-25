@@ -29,10 +29,10 @@ function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      const data = (await res.json()) as Record<string, unknown>;
 
       if (!res.ok) {
-        setError(data.error || "Login failed");
+        setError((data.error as string | undefined) || "Login failed");
         return;
       }
 

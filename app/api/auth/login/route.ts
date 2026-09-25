@@ -13,7 +13,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = loginSchema.parse(body);
 
-    const [user] = await useDb()
+    const db = await useDb(request);
+    if (!db) throw new Error("No DB");
+    const [user] = await db
       .select()
       .from(users)
       .where(eq(users.email, validated.email))
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [company] = await useDb()
+    const [company] = await db
       .select()
       .from(companies)
       .where(eq(companies.id, user.companyId))

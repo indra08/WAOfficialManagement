@@ -13,7 +13,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = registerSchema.parse(body);
 
-    const existingUser = await useDb()
+    const db = await useDb(request);
+    if (!db) throw new Error("No DB");
+    const existingUser = await db
       .select()
       .from(users)
       .where(eq(users.email, validated.email))
@@ -29,7 +31,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(validated.password);
     const role = "member";
 
-    const [newUser] = await useDb()
+    const [newUser] = await db
       .insert(users)
       .values({
         email: validated.email,
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
       })
       .returning({ id: users.id });
 
-    const [company] = await useDb()
+    const [company] = await db
       .insert(companies)
       .values({
         name: validated.name + " Company",
@@ -49,8 +51,7 @@ export async function POST(request: NextRequest) {
       })
       .returning({ id: companies.id });
 
-    await useDb()
-      .update(users)
+    await db.update(users)
       .set({ companyId: company.id })
       .where(eq(users.id, newUser.id));
 

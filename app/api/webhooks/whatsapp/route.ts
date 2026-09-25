@@ -14,32 +14,35 @@ import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = (await request.json()) as Record<string, unknown>;
 
     if (!body.object || body.object !== "whatsapp_business_account") {
       return NextResponse.json({ message: "Not a WhatsApp webhook" }, { status: 200 });
     }
 
-    const entry = body.entry?.[0];
+    const entry = (body.entry as Record<string, unknown>[] | undefined)?.[0];
     if (!entry) {
       return NextResponse.json({ message: "No entry found" }, { status: 200 });
     }
 
-    const changes = entry.changes?.[0];
+    const changes = (entry.changes as Record<string, unknown>[] | undefined)?.[0];
     if (!changes) {
       return NextResponse.json({ message: "No changes found" }, { status: 200 });
     }
 
     // Extract phone_number_id from meta field
-    const metaField = changes.meta;
-    if (!metaField?.phone_number_id) {
+    const metaField = (changes as Record<string, unknown>).meta as Record<string, unknown> | undefined;
+    if (!metaField?.["phone_number_id"]) {
       return NextResponse.json({ error: "Missing phone_number_id in meta" }, { status: 400 });
     }
 
-    const phoneNumberId = metaField.phone_number_id;
+    const phoneNumberId = metaField["phone_number_id"] as string;
+
+    const db = await useDb(request);
+    if (!db) throw new Error("No DB");
 
     // Find which company this phone number belongs to
-    const [conn] = await useDb()
+    const [conn] = await db
       .select({ companyId: whatsappAppConnections.companyId })
       .from(whatsappAppConnections)
       .where(eq(whatsappAppConnections.phoneNumberId, phoneNumberId))
@@ -50,8 +53,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Account not found" }, { status: 200 });
     }
 
-    const eventType = changes.field || "unknown";
-    await useDb().insert(webhookEvents).values({
+    const eventType = (changes.field as string | undefined) || "unknown";
+    await db.insert(webhookEvents).values({
       companyId: conn.companyId,
       eventType,
       payload: body as Record<string, unknown>,
@@ -74,11 +77,14 @@ export async function GET(request: NextRequest) {
   // Look up stored webhook token from any active connection (fallback to env)
   let expectedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
   if (!expectedToken) {
-    const [conn] = await useDb()
-      .select({ token: whatsappAppConnections.webhookVerifyToken })
-      .from(whatsappAppConnections)
-      .limit(1);
-    expectedToken = conn?.token ?? undefined;
+    const db2 = await useDb(request);
+    if (db2) {
+      const [conn] = await db2
+        .select({ token: whatsappAppConnections.webhookVerifyToken })
+        .from(whatsappAppConnections)
+        .limit(1);
+      expectedToken = conn?.token ?? undefined;
+    }
   }
 
   if (!expectedToken) {

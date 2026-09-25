@@ -26,7 +26,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [connection] = await useDb()
+    const db = await useDb(request);
+    if (!db) throw new Error("No DB");
+    const [connection] = await db
       .select()
       .from(whatsappAppConnections)
       .where(eq(whatsappAppConnections.companyId, session.companyId))
@@ -36,7 +38,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ connected: false });
     }
 
-    const [pendingSignup] = await useDb()
+    const [pendingSignup] = await db
       .select()
       .from(whatsappEmbeddedSignups)
       .where(and(eq(whatsappEmbeddedSignups.companyId, session.companyId), eq(whatsappEmbeddedSignups.status, "pending")))

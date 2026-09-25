@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { db } from "./db";
+import { useDb } from "./db";
 
-export function assertDb(): Promise<NextResponse | null> {
+export async function assertDb(): Promise<NextResponse | null> {
+  const db = await useDb();
   if (!db) {
-    return Promise.resolve(NextResponse.json(
-      { error: "Database not configured. Set D1 binding or DATABASE_URL." },
+    return NextResponse.json(
+      { error: "Database not configured." },
       { status: 503 }
-    ));
+    );
   }
-  return Promise.resolve(null);
+  return null;
 }

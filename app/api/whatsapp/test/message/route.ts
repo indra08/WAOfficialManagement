@@ -28,13 +28,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { phoneNumber, message, messageType } = await request.json();
+    const reqBody = (await request.json()) as { phoneNumber?: string; message?: string | Record<string, unknown>; messageType?: string; };
+    const { phoneNumber, message, messageType } = reqBody;
 
     if (!phoneNumber || !message) {
       return NextResponse.json({ error: "Nomor telepon dan pesan wajib diisi." }, { status: 400 });
     }
 
-    const [conn] = await useDb()
+    const db = await useDb(request);
+    if (!db) throw new Error("No DB");
+    const [conn] = await db
       .select()
       .from(whatsappAppConnections)
       .where(eq(whatsappAppConnections.companyId, session.companyId))
@@ -60,11 +63,12 @@ export async function POST(request: NextRequest) {
 
     if (messageType === "template") {
       body.type = "template";
+      const templateMsg = message as Record<string, unknown>;
       body.template = {
-        name: message.name,
-        language: { code: message.language ?? "id" },
-        ...(message.components && message.components.length > 0
-          ? { components: message.components }
+        name: templateMsg.name,
+        language: { code: templateMsg.language ?? "id" },
+        ...(templateMsg.components && (templateMsg.components as unknown[]).length > 0
+          ? { components: templateMsg.components }
           : {}),
       };
     } else {
@@ -83,12 +87,12 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    const data = await res.json();
+    const data = (await res.json()) as Record<string, unknown>;
 
     if (!res.ok || data.error) {
       console.error("[Test message] Meta API error:", data);
       return NextResponse.json(
-        { error: data.error?.message ?? "Gagal mengirim pesan", detail: data },
+        { error: (data.error as Record<string, unknown>)?.message ?? "Gagal mengirim pesan", detail: data },
         { status: res.status }
       );
     }

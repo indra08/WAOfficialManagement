@@ -64,7 +64,9 @@ export async function POST(request: NextRequest) {
     const stateBuf = crypto.getRandomValues(new Uint8Array(16));
     const state = bufToBase64url(stateBuf);
 
-    const [record] = await useDb()
+    const db = await useDb(request);
+    if (!db) throw new Error("No DB");
+    const [record] = await db
       .insert(whatsappEmbeddedSignups)
       .values({
         companyId: session.companyId,

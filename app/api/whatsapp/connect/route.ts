@@ -24,7 +24,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [connection] = await useDb()
+    const db = await useDb(request);
+    if (!db) throw new Error("No DB");
+
+    const [connection] = await db
       .select()
       .from(whatsappAppConnections)
       .where(eq(whatsappAppConnections.companyId, session.companyId))
@@ -42,7 +45,7 @@ export async function DELETE(request: NextRequest) {
       ).catch(() => null); // non-blocking
     }
 
-    await useDb().delete(whatsappAppConnections).where(eq(whatsappAppConnections.id, connection.id));
+    await db.delete(whatsappAppConnections).where(eq(whatsappAppConnections.id, connection.id));
 
     return NextResponse.json({ ok: true });
   } catch (error) {

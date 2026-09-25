@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = (await request.json()) as { accessToken?: string; phoneNumberId?: string; businessAccountId?: string; phoneNr?: string; };
     const { accessToken, phoneNumberId, businessAccountId, phoneNr }: {
       accessToken?: string;
       phoneNumberId?: string;
@@ -38,15 +38,17 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date();
+    const db = await useDb(request);
+    if (!db) throw new Error("No DB");
 
-    const [existing] = await useDb()
+    const [existing] = await db
       .select()
       .from(whatsappAppConnections)
       .where(eq(whatsappAppConnections.companyId, session.companyId))
       .limit(1);
 
     if (existing) {
-      await useDb().update(whatsappAppConnections)
+      await db.update(whatsappAppConnections)
         .set({
           accessToken,
           metaAppId: existing.metaAppId ?? "",
@@ -59,7 +61,7 @@ export async function POST(request: NextRequest) {
         })
         .where(eq(whatsappAppConnections.companyId, session.companyId));
     } else {
-      await useDb().insert(whatsappAppConnections).values({
+      await db.insert(whatsappAppConnections).values({
         companyId: session.companyId,
         metaAppId: "",
         metaAppSecret: "",

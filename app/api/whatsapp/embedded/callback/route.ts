@@ -76,12 +76,12 @@ async function fetchWabaIds(appAccessToken: string, appId: string): Promise<stri
   url.searchParams.set("access_token", appAccessToken);
   try {
     const res = await fetch(url.toString());
-    const json = await res.json();
-    if (!res.ok || json.error) {
+    const json = (await res.json()) as Record<string, unknown>;
+    if (!res.ok || (json as Record<string, unknown>).error) {
       console.warn("[Fetch WABA IDs] error:", json);
       return [];
     }
-    return (json.data ?? [])
+    return ((json.data ?? []) as Array<{ id: string }>)
       .map((item: { id: string }) => item.id)
       .filter(Boolean);
   } catch (err) {
@@ -96,12 +96,12 @@ async function fetchWabaIdsViaUser(userAccessToken: string): Promise<string[]> {
   url.searchParams.set("access_token", userAccessToken);
   try {
     const res = await fetch(url.toString());
-    const json = await res.json();
-    if (!res.ok || json.error) {
+    const json = (await res.json()) as Record<string, unknown>;
+    if (!res.ok || (json as Record<string, unknown>).error) {
       console.warn("[Fetch WABA IDs via user] error:", JSON.stringify(json).slice(0, 200));
       return [];
     }
-    return (json.data ?? [])
+    return ((json.data ?? []) as Array<{ id: string }>)
       .map((item: { id: string }) => item.id)
       .filter(Boolean);
   } catch (err) {
@@ -116,12 +116,12 @@ async function fetchPhoneNumbers(accessToken: string, wabaId: string): Promise<A
   url.searchParams.set("access_token", accessToken);
   try {
     const res = await fetch(url.toString());
-    const json = await res.json();
-    if (!res.ok || json.error) {
+    const json = (await res.json()) as Record<string, unknown>;
+    if (!res.ok || (json as Record<string, unknown>).error) {
       console.warn(`[Fetch Phones for ${wabaId}] error:`, json);
       return [];
     }
-    return (json.data ?? []).map((p: { id: string; phone_number: string }) => ({
+    return ((json.data ?? []) as Array<{ id: string; phone_number: string }>).map((p) => ({
       id: p.id,
       number: p.phone_number,
     }));
@@ -138,8 +138,8 @@ async function fetchWabaDetails(accessToken: string, businessAccountId: string):
   url.searchParams.set("access_token", accessToken);
   try {
     const res = await fetch(url.toString());
-    const json = await res.json();
-    if (!res.ok || json.error) {
+    const json = (await res.json()) as Record<string, unknown>;
+    if (!res.ok || (json as Record<string, unknown>).error) {
       console.warn("[Fetch WABA details] error:", json);
       return {};
     }
@@ -162,8 +162,8 @@ async function setupWebhookSubscription(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ callback_url: webhookUrl, fields: ["messaging"] }),
     });
-    const json = await res.json();
-    if (!res.ok || json.error) console.warn("[Webhook setup] failed:", json);
+    const json = (await res.json()) as Record<string, unknown>;
+    if (!res.ok || (json as Record<string, unknown>).error) console.warn("[Webhook setup] failed:", json);
   } catch (err) {
     console.warn("[Webhook setup] error:", err);
   }
@@ -205,8 +205,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const db = await useDb(request);
+    if (!db) throw new Error("No DB");
+
     // 1. Find pending signup record
-    const [signup] = await useDb()
+    const [signup] = await db
       .select()
       .from(whatsappEmbeddedSignups)
       .where(eq(whatsappEmbeddedSignups.state, state))
@@ -231,7 +234,7 @@ export async function GET(request: NextRequest) {
     );
 
     if (!ok || !tokenData.access_token) {
-      await useDb().update(whatsappEmbeddedSignups)
+      await db.update(whatsappEmbeddedSignups)
         .set({ status: "expired", metaResponse: tokenData as unknown as Record<string, unknown>, errorMessage: tokenError ?? "Token exchange failed" })
         .where(eq(whatsappEmbeddedSignups.id, signup.id));
       const reason = tokenData.error_reason || tokenData.error_message || tokenError || "Token exchange failed";
@@ -281,7 +284,7 @@ export async function GET(request: NextRequest) {
     const tier = (wabaDetails as Record<string, string>).tier ?? null;
     const ws = (wabaDetails as Record<string, string>)?.status ?? "inactive";
 
-    await useDb().insert(whatsappAppConnections)
+    await db.insert(whatsappAppConnections)
       .values({
         companyId: signup.companyId,
         metaAppId: signup.metaAppId,
@@ -315,7 +318,7 @@ export async function GET(request: NextRequest) {
       });
 
     // 7. Mark signup as completed
-    await useDb().update(whatsappEmbeddedSignups)
+    await db.update(whatsappEmbeddedSignups)
       .set({ status: "completed", authorizationCode: code, metaResponse: tokenData as unknown as Record<string, unknown>, completedAt: new Date() })
       .where(eq(whatsappEmbeddedSignups.id, signup.id));
 
